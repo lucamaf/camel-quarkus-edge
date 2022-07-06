@@ -35,12 +35,14 @@ public class Routes extends RouteBuilder {
         from("direct:kafka")
             .routeId("FromMsg2Kafka")
             .setBody().simple("${exchangeProperty.Status}")
+            .log("${exchangeProperty.Status}")
             .to("kafka:{{kafka.topic.name}}")
             .log("Message sent correctly to KAFKA! : \"${body}\" ");
         // filter message
         from("direct:amqp")
             .routeId("FromMsg2AMQ")
             .setBody().simple("${exchangeProperty.Value}")
+            .log("${exchangeProperty.Value}")
             .to("paho:{{mqtt.topic.name}}?brokerUrl=tcp://{{mqtt.server}}:{{mqtt.port}}")
             .log("Message sent correctly AMQ-BROKER! : \"${body}\" ");
         
@@ -48,6 +50,7 @@ public class Routes extends RouteBuilder {
         from("direct:aws")
             .routeId("FromMsg2Kinesis")
             .setBody().simple("${exchangeProperty.Time}")
+            .log("${exchangeProperty.Time}")
             .to("aws2-kinesis://{{aws.kinesis.stream-name}}?useDefaultCredentialsProvider=true&region=eu-central-1")
             .log("Message sent correctly to KINESIS! : \"${body}\" "); 
     }
