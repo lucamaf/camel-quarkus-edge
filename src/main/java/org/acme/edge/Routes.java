@@ -20,7 +20,7 @@ public class Routes extends RouteBuilder {
                 .process(exchange -> {
                     DataValue data = exchange.getIn().getBody(DataValue.class);
                     exchange.setProperty("Status", data.getStatusCode().toString());
-                    exchange.setProperty("Value", data.getValue().getValue());
+                    exchange.setProperty("Value", data.getValue().getValue().toString());
                     exchange.setProperty("Time", data.getSourceTime().toString());
                 })
                 .to("direct:sink");
@@ -41,7 +41,7 @@ public class Routes extends RouteBuilder {
         // filter message
         from("direct:amqp")
             .routeId("FromMsg2AMQ")
-            .setBody().simple("${exchangeProperty.Value}")
+            .setBody().simple("${exchangeProperty.Status}")
             .log("${exchangeProperty.Value}")
             .to("paho:{{mqtt.topic.name}}?brokerUrl=tcp://{{mqtt.server}}:{{mqtt.port}}")
             .log("Message sent correctly AMQ-BROKER! : \"${body}\" ");
@@ -49,7 +49,7 @@ public class Routes extends RouteBuilder {
         // mask message
         from("direct:aws")
             .routeId("FromMsg2Kinesis")
-            .setBody().simple("${exchangeProperty.Time}")
+            .setBody().simple("${exchangeProperty.Status}")
             .log("${exchangeProperty.Time}")
             .to("aws2-kinesis://{{aws.kinesis.stream-name}}?useDefaultCredentialsProvider=true&region=eu-central-1")
             .log("Message sent correctly to KINESIS! : \"${body}\" "); 
