@@ -41,7 +41,7 @@ public class Routes extends RouteBuilder {
         from("direct:amqp")
             .routeId("FromMsg2AMQ")
             .setBody().simple("${header.Value}")
-            .to("paho:{{mqtt.topic.name}}?brokerUrl=tcp://my-broker-mqtt-0-svc:1833")
+            .to("paho:{{mqtt.topic.name}}?brokerUrl=tcp://{{mqtt.server}}:{{mqtt.port}}")
             .log("Message sent correctly AMQ-BROKER! : \"${body}\" ");
         
         // mask message
