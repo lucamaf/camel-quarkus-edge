@@ -48,7 +48,7 @@ public class Routes extends RouteBuilder {
         from("direct:aws")
             .routeId("FromMsg2Kinesis")
             .setBody().simple("${header.Time}")
-            .to("aws2-kinesis://{{aws.kinesis.stream-name}}?useDefaultCredentialsProvider=true&amazonKinesisClient=quarkus")
+            .to("aws2-kinesis://{{aws.kinesis.stream-name}}?useDefaultCredentialsProvider=true")
             .log("Message sent correctly to KINESIS! : \"${body}\" "); 
     }
 }
