@@ -14,7 +14,7 @@ public class Routes extends RouteBuilder {
     public void configure() throws Exception {
         
         // opcua client
-        from("milo-client:opc.tcp://{{opcuaserver.host}}:{{opcuaserver.port}}/milo?allowedSecurityPolicies=None&samplingInterval=500&node=RAW(ns=2;s=Dynamic/RandomInt32)")
+        from("milo-client:opc.tcp://{{opcuaserver.host}}:{{opcuaserver.port}}/milo?allowedSecurityPolicies=None&samplingInterval=5000&node=RAW(ns=2;s=Dynamic/RandomInt32)")
                 .routeId("FromOPCUA2Payload")
                 .log("Received : \"${body}\"")
                 .process(exchange -> {
@@ -28,10 +28,11 @@ public class Routes extends RouteBuilder {
         from("direct:sink")
             .routeId("FromPayload2Msg")
             .multicast()
-                .to("direct:amqp")
+                .to("direct:aws")
                 .to("direct:kafka")
-                .to("direct:aws");
+                .to("direct:mqtt");
         // enrich message
+        // add progressive id to msg
         from("direct:kafka")
             .routeId("FromMsg2Kafka")
             .setBody().simple("${exchangeProperty.Status}")
@@ -39,7 +40,8 @@ public class Routes extends RouteBuilder {
             .to("kafka:{{kafka.topic.name}}")
             .log("Message sent correctly to KAFKA! : \"${body}\" ");
         // filter message
-        from("direct:amqp")
+        // send only if value is positive
+        from("direct:mqtt")
             .routeId("FromMsg2AMQ")
             .setBody().simple("${exchangeProperty.Status}")
             .log("${exchangeProperty.Value}")
@@ -47,11 +49,13 @@ public class Routes extends RouteBuilder {
             .log("Message sent correctly AMQ-BROKER! : \"${body}\" ");
         
         // mask message
+        // asterisk the value
         from("direct:aws")
             .routeId("FromMsg2Kinesis")
             .setBody().simple("${exchangeProperty.Status}")
             .log("${exchangeProperty.Time}")
-            .to("aws2-kinesis://{{aws.kinesis.stream-name}}?useDefaultCredentialsProvider=true&region=eu-central-1")
+            .setHeader("CamelAwsKinesisPartitionKey", constant(0))
+            .to("aws2-kinesis://{{aws.kinesis.stream-name}}?aws.accessKey={{aws.access.key.id}}&secretKey={{aws.secret.access.key}}&region=eu-central-1")
             .log("Message sent correctly to KINESIS! : \"${body}\" "); 
     }
 }
