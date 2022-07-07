@@ -21,6 +21,7 @@ public class Routes extends RouteBuilder {
                     DataValue data = exchange.getIn().getBody(DataValue.class);
                     exchange.setProperty("Status", data.getStatusCode().toString());
                     exchange.setProperty("Value", data.getValue().getValue().toString());
+                    exchange.setProperty("IntValue", data.getValue().getValue());
                     exchange.setProperty("Time", data.getSourceTime().toString());
                 })
                 .to("direct:sink");
@@ -32,30 +33,32 @@ public class Routes extends RouteBuilder {
                 .to("direct:kafka")
                 .to("direct:mqtt");
         // enrich message
-        // add progressive id to msg
+        // add value to status
         from("direct:kafka")
             .routeId("FromMsg2Kafka")
-            .setBody().simple("${exchangeProperty.Status}")
-            .log("${exchangeProperty.Status}")
+            .setBody().simple("${exchangeProperty.Status},Value=${exchangeProperty.Value}")
             .to("kafka:{{kafka.topic.name}}")
             .log("Message sent correctly to KAFKA! : \"${body}\" ");
         // filter message
-        // send only if value is positive
+        // get only the last 4 chars value
         from("direct:mqtt")
             .routeId("FromMsg2AMQ")
-            .setBody().simple("${exchangeProperty.Status}")
-            .log("${exchangeProperty.Value}")
+            .setBody().simple("${exchangeProperty.Status},Value=${exchangeProperty.Value.substring(${exchangeProperty.Value.length()-5},${exchangeProperty.Value.length()-1})}")
             .to("paho:{{mqtt.topic.name}}?brokerUrl=tcp://{{mqtt.server}}:{{mqtt.port}}")
-            .log("Message sent correctly AMQ-BROKER! : \"${body}\" ");
+            .log("Message sent correctly to AMQ-BROKER! : \"${body}\" ");
         
         // mask message
-        // asterisk the value
+        // send only if value is positive
         from("direct:aws")
             .routeId("FromMsg2Kinesis")
-            .setBody().simple("${exchangeProperty.Status}")
-            .log("${exchangeProperty.Time}")
+            .choice()
+                .when(simple("${exchangeProperty.IntValue} > 0"))
+                    .to("direct:positive");
+
+        from("direct:positive")
+            .setBody().simple("${exchangeProperty.Status},Value=${exchangeProperty.Value}")
             .setHeader("CamelAwsKinesisPartitionKey", constant(0))
-            .to("aws2-kinesis://{{aws.kinesis.stream-name}}?aws.accessKey={{aws.access.key.id}}&secretKey={{aws.secret.access.key}}&region=eu-central-1")
+            .to("aws2-kinesis://{{aws.kinesis.stream-name}}?accessKey={{aws.access.key.id}}&secretKey={{aws.secret.access.key}}&region=eu-central-1")
             .log("Message sent correctly to KINESIS! : \"${body}\" "); 
     }
 }
