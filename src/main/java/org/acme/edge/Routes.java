@@ -43,7 +43,12 @@ public class Routes extends RouteBuilder {
         // get only the last 4 chars value
         from("direct:mqtt")
             .routeId("FromMsg2AMQ")
-            .setBody().simple("${exchangeProperty.Status},Value=${exchangeProperty.Value.substring(${exchangeProperty.Value.length()-5},${exchangeProperty.Value.length()-1})}")
+            .process(exchange -> {
+                String value = exchange.getProperty("Value").toString();
+                String subvalue = value.substring(value.length()-5, value.length()-1);
+                exchange.setProperty("Value",subvalue);
+            })
+            .setBody().simple("${exchangeProperty.Status},MaskValue=${exchangeProperty.Value}")
             .to("paho:{{mqtt.topic.name}}?brokerUrl=tcp://{{mqtt.server}}:{{mqtt.port}}")
             .log("Message sent correctly to AMQ-BROKER! : \"${body}\" ");
         
