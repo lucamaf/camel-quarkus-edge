@@ -55,12 +55,12 @@ public class Routes extends RouteBuilder {
         // mask message
         // send only if value is positive
         from("direct:aws")
-            .routeId("FromMsg2Kinesis")
             .choice()
                 .when(simple("${exchangeProperty.IntValue} > 0"))
                     .to("direct:positive");
 
         from("direct:positive")
+            .routeId("FromMsg2Kinesis")
             .setBody().simple("${exchangeProperty.Status},Value=${exchangeProperty.Value}")
             .setHeader("CamelAwsKinesisPartitionKey", constant(0))
             .to("aws2-kinesis://{{aws.kinesis.stream-name}}?accessKey={{aws.access.key.id}}&secretKey={{aws.secret.access.key}}&region=eu-central-1")
