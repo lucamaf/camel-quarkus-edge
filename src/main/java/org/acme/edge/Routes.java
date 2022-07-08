@@ -9,10 +9,11 @@ import org.apache.camel.builder.RouteBuilder;
 
 @ApplicationScoped
 public class Routes extends RouteBuilder {
-    
+
     @Override
     public void configure() throws Exception {
-        
+        getContext().setManagementName("hawtio");
+
         // opcua client
         from("milo-client:opc.tcp://{{opcuaserver.host}}:{{opcuaserver.port}}/milo?allowedSecurityPolicies=None&samplingInterval=5000&node=RAW(ns=2;s=Dynamic/RandomInt32)")
                 .routeId("FromOPCUA2Payload")
